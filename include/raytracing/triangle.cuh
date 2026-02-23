@@ -34,7 +34,7 @@ struct Triangle {
         float u = d*-q.dot( v2v0 );
         float v = d* q.dot( v1v0 );
         float t = d*-n.dot( rov0 );
-        if( u<0.0f || u>1.0f || v<0.0f || (u+v)>1.0f || t<0.0f) t = 1e6f;
+        if( u<0.0f || u>1.0f || v<0.0f || (u+v)>1.0f || t<0.0f) t = MAX_DIST;
         return t; // Eigen::Vector3f( t, u, v );
     }
 

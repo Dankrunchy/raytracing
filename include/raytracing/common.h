@@ -18,8 +18,8 @@ namespace raytracing {
 constexpr float PI    = 3.14159265358979323846f;
 constexpr float SQRT2 = 1.41421356237309504880f;
 
-constexpr float MAX_DIST    = std::numeric_limits<float>::infinity();
-constexpr float MAX_DIST_SQ = std::numeric_limits<float>::infinity();
+constexpr float MAX_DIST    = std::numeric_limits<float>::max();
+constexpr float MAX_DIST_SQ = std::numeric_limits<float>::max();
 // constexpr float MAX_DIST_SQ = MAX_DIST*MAX_DIST;
 
 
