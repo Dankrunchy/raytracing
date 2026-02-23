@@ -20,7 +20,7 @@ def find_eigen(min_ver=(3, 3, 0)):
     MINOR_VER_STR = "#define EIGEN_MINOR_VERSION"
     EIGEN_WEB_URL = 'https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.bz2'
     TMP_EIGEN_FILE = 'tmp_eigen.tar.bz2'
-    TMP_EIGEN_DIR = 'eigen-3.3.7'
+    TMP_EIGEN_DIR = _src_path + '/eigen-3.3.7'
     min_ver_str = '.'.join(map(str, min_ver))
 
     eigen_path = None
@@ -81,14 +81,15 @@ def find_eigen(min_ver=(3, 3, 0)):
     return eigen_path
 
 nvcc_flags = [
-    '-O3', '-std=c++14',
+    '-O3', '-std=c++17',
     "--expt-extended-lambda",
 	"--expt-relaxed-constexpr",
     '-U__CUDA_NO_HALF_OPERATORS__', '-U__CUDA_NO_HALF_CONVERSIONS__', '-U__CUDA_NO_HALF2_OPERATORS__',
 ]
 
 if os.name == "posix":
-    c_flags = ['-O3', '-std=c++14']
+    
+    c_flags = ['-O3', '-std=c++17']
 elif os.name == "nt":
     c_flags = ['/O2', '/std:c++17']
 
@@ -117,7 +118,7 @@ pip install -e . # ditto but better (e.g., dependency & metadata handling)
 '''
 setup(
     name='raytracing', # package name, import this to use python API
-    version='0.1.0',
+    version='0.1.1',
     description='CUDA RayTracer with BVH acceleration',
     url='https://github.com/ashawkey/raytracing',
     author='kiui',
@@ -148,9 +149,11 @@ setup(
         'trimesh',
         'opencv-python',
         'torch',
-        'numpy ',
+        'numpy',
         'tqdm',
         'matplotlib',
         'dearpygui',
     ],
+    packages=['raytracing'],
+    scripts=['raytracing/raytracer.py'],
 )

@@ -26,6 +26,7 @@
 #include <stack>
 #include <iostream>
 #include <cstdio>
+// #include "raytracing/common.h"
 
 using namespace Eigen;
 using namespace raytracing;
@@ -33,8 +34,9 @@ using namespace raytracing;
 
 namespace raytracing {
 
-constexpr float MAX_DIST = 10.0f;
-constexpr float MAX_DIST_SQ = MAX_DIST*MAX_DIST;
+// constexpr float MAX_DIST = 10.0f;
+// constexpr float MAX_DIST = __builtin_inff (); // INFINITY
+// constexpr float MAX_DIST_SQ = MAX_DIST*MAX_DIST;
 
 
 // #ifdef NGP_OPTIX
@@ -155,7 +157,7 @@ __host__ __device__ void inline compare_and_swap(T& t1, T& t2) {
 }
 
 // Sorting networks from http://users.telenet.be/bertdobbelaere/SorterHunter/sorting_networks.html#N4L5D3
-template <uint32_t N, typename T>
+template <uint8_t N, typename T>
 __host__ __device__ void sorting_network(T values[N]) {
     static_assert(N <= 8, "Sorting networks are only implemented up to N==8");
     if (N <= 1) {
@@ -253,10 +255,12 @@ __host__ __device__ void sorting_network(T values[N]) {
     }
 }
 
-template <uint32_t BRANCHING_FACTOR>
+template <uint8_t BRANCHING_FACTOR>
 class TriangleBvhWithBranchingFactor : public TriangleBvh {
 public:
+    /*
     __host__ __device__ static std::pair<int, float> ray_intersect(Ref<const Vector3f> ro, Ref<const Vector3f> rd, const TriangleBvhNode* __restrict__ bvhnodes, const Triangle* __restrict__ triangles) {
+        // Breadth first search, can require more memory than query_stack has -> leads to CUDA errors
         FixedIntStack query_stack;
         query_stack.push(0);
 
@@ -295,6 +299,63 @@ public:
                         query_stack.push(children[i].idx);
                     }
                 }
+            }
+        }
+        return {shortest_idx, mint};
+    }
+    */
+    
+    __host__ __device__ static std::pair<int, float> ray_intersect(Ref<const Vector3f> ro, Ref<const Vector3f> rd, const TriangleBvhNode* __restrict__ bvhnodes, const Triangle* __restrict__ triangles) {
+        // depth first search, should require less maximum memory than breadth first search variant (for large meshes)
+        // FixedIntStack could be reduced in memory consumption, as we would need to have
+        // 8^32 triangles == 2^96 triangles to exceed our stack size (assuming perfectly even distribution)
+
+        FixedStack<int, 32> query_stack;
+        FixedStack<uint8_t, 32> check_stack;  // how many children of queried node were tested yet (between 0 and BRANCHING_FACTOR)
+        query_stack.push(0);
+        check_stack.push(0);
+
+        float mint = MAX_DIST;
+        int shortest_idx = -1;
+
+        while (!query_stack.empty()) {
+            int idx = query_stack.peek();   // keep first BVH Node in stack until depth search finished
+
+            const TriangleBvhNode& node = bvhnodes[idx];
+
+            if (node.left_idx < 0) {
+                int end = -node.right_idx-1;
+                for (int i = -node.left_idx-1; i < end; ++i) {
+                    float t = triangles[i].ray_intersect(ro, rd);
+                    if (t < mint) {
+                        mint = t;
+                        shortest_idx = i;
+                    }
+                }
+                // remove checked node from stacks
+                query_stack.pop();
+                check_stack.pop();
+            } else {
+                uint32_t first_child = node.left_idx;
+
+                // update check stack for parent node
+                uint8_t check_idx = check_stack.pop();
+
+                if (check_idx >= BRANCHING_FACTOR) {
+                    query_stack.pop();
+                    continue; // all children were checked
+                }
+                check_stack.push(check_idx+1);
+
+                // calc distance of child
+                float dist = bvhnodes[(int)check_idx + first_child].bb.ray_intersect(ro, rd).x();
+
+                // add child (node) to stack if eligible
+                if (dist < mint) {
+                    query_stack.push((int)check_idx + first_child);
+                    check_stack.push(0);
+                }
+                
             }
         }
 
@@ -553,7 +614,8 @@ public:
             int n_children = 1;
             while (n_children < BRANCHING_FACTOR) {
                 for (int i = n_children - 1; i >= 0; --i) {
-                    auto& child = children[i];
+                    // auto& child = children[i];
+                    BuildNode& child = children[i];
 
                     // Choose axis with maximum standard deviation
                     Vector3f mean = Vector3f::Zero();
@@ -586,7 +648,7 @@ public:
             // Create next build nodes
             m_nodes[node_idx].left_idx = (int)m_nodes.size();
             for (uint32_t i = 0; i < BRANCHING_FACTOR; ++i) {
-                auto& child = children[i];
+                BuildNode& child = children[i];
                 assert(child.begin != child.end);
                 child.node_idx = (int)m_nodes.size();
 

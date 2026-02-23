@@ -30,6 +30,10 @@ public:
         return m_elems[--m_count];
     }
 
+    __host__ __device__ T peek() {
+        return m_elems[m_count-1];
+    }
+
     __host__ __device__ bool empty() const {
         return m_count <= 0;
     }

@@ -13,8 +13,9 @@ class RayTracer():
         if torch.is_tensor(vertices): vertices = vertices.detach().cpu().numpy()
         if torch.is_tensor(triangles): triangles = triangles.detach().cpu().numpy()
 
-        assert triangles.shape[0] > 8, "BVH needs at least 8 triangles."
-        
+        # assert triangles.shape[0] > 8, "BVH needs at least 8 triangles."
+        assert triangles.shape[0] > 0, "BVH needs at least 1 triangle."
+
         # implementation
         self.impl = _backend.create_raytracer(vertices, triangles)
 
@@ -44,7 +45,7 @@ class RayTracer():
             face_normals = rays_d
 
         depth = torch.empty_like(rays_o[:, 0])
-        
+
         # inplace write intersections back to rays_o
         self.impl.trace(rays_o, rays_d, positions, face_normals, depth) # [N, 3]
 

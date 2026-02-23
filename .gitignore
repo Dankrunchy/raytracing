@@ -4,3 +4,6 @@ build/
 *.so
 .vs/
 *.ply
+
+# eigen library is externally downloaded and should not be uploaded to git!
+eigen-3.3.7/
