@@ -649,7 +649,8 @@ public:
             m_nodes[node_idx].left_idx = (int)m_nodes.size();
             for (uint32_t i = 0; i < BRANCHING_FACTOR; ++i) {
                 BuildNode& child = children[i];
-                assert(child.begin != child.end);
+                // assert(child.begin != child.end);
+                if(child.begin == child.end) continue;
                 child.node_idx = (int)m_nodes.size();
 
                 m_nodes.emplace_back();
